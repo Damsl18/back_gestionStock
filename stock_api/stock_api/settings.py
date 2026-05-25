@@ -28,7 +28,7 @@ SECRET_KEY = 'django-insecure-i5*t+gak98e+xm9fu*qi()&5&rehy+$%)%uh=h318-+ea!kl@_
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["https://back-gestionstock.onrender.com"]
+ALLOWED_HOSTS = ["https://back-gestionstock.onrender.com", "localhost", "127.0.0.1", "localhost:3000"]
 
 
 
@@ -36,6 +36,7 @@ ALLOWED_HOSTS = ["https://back-gestionstock.onrender.com"]
 
 INSTALLED_APPS = [
     # Jazzmin doit être AVANT django.contrib.admin pour fonctionner
+    'corsheaders',
     'jazzmin',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -49,6 +50,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -173,7 +175,7 @@ REST_FRAMEWORK = {
         'user_10_per_minute': '10/minute',
         'anon_5_per_minute': '5/minute',
         'user_100_per_hour': '100/hour',
-        'login_attempt': '5/15minutes',
+        'login_attempt': '5/minute',
         'registration_attempt': '10/hour',
         'api_abuse': '1000/hour',
         'price_change': '50/hour',
@@ -333,4 +335,9 @@ LOGGING = {
         },
     },
 }
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
 
+CORS_ALLOWED_CREDENTIALS = True

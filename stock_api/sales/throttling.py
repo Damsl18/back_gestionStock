@@ -43,19 +43,19 @@ class LoginAttemptThrottle(SimpleRateThrottle):
     Maximum 5 tentatives de connexion par 15 minutes par adresse IP
     """
     scope = 'login_attempt'
-    rate = '5/15minutes'  # 5 tentatives par 15 minutes
+    rate = '5/minute'  # 5 tentatives par 15 minutes
     
-    def get_cache_key(self):
+    def get_cache_key(self, request, view):
         """
         Utiliser l'adresse IP comme clé de cache
         Cela limite le nombre de tentatives de connexion par adresse IP
         """
         # Récupérer l'adresse IP du client
-        x_forwarded_for = self.request.META.get('HTTP_X_FORWARDED_FOR')
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:
             ip = x_forwarded_for.split(',')[0]
         else:
-            ip = self.request.META.get('REMOTE_ADDR')
+            ip = request.META.get('REMOTE_ADDR')
         
         # Retourner la clé de cache basée sur l'adresse IP
         return f'login_attempt_{ip}'
@@ -69,13 +69,13 @@ class RegistrationAttemptThrottle(SimpleRateThrottle):
     scope = 'registration_attempt'
     rate = '10/hour'  # 10 enregistrements par heure
     
-    def get_cache_key(self):
+    def get_cache_key(self, request, view):
         """Utiliser l'adresse IP comme clé de cache"""
-        x_forwarded_for = self.request.META.get('HTTP_X_FORWARDED_FOR')
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
         if x_forwarded_for:
             ip = x_forwarded_for.split(',')[0]
         else:
-            ip = self.request.META.get('REMOTE_ADDR')
+            ip = request.META.get('REMOTE_ADDR')
         
         return f'registration_attempt_{ip}'
 
@@ -88,20 +88,20 @@ class APIAbuseThrottle(SimpleRateThrottle):
     scope = 'api_abuse'
     rate = '1000/hour'  # 1000 requêtes par heure
     
-    def get_cache_key(self):
+    def get_cache_key(self, request, view):
         """
         Créer une clé de cache basée sur l'utilisateur ou l'adresse IP
         """
-        if self.request.user and self.request.user.is_authenticated:
+        if request.user and request.user.is_authenticated:
             # Pour les utilisateurs authentifiés, utiliser leur ID
-            return f'api_abuse_{self.request.user.id}'
+            return f'api_abuse_{request.user.id}'
         else:
             # Pour les utilisateurs anonymes, utiliser leur IP
-            x_forwarded_for = self.request.META.get('HTTP_X_FORWARDED_FOR')
+            x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
             if x_forwarded_for:
                 ip = x_forwarded_for.split(',')[0]
             else:
-                ip = self.request.META.get('REMOTE_ADDR')
+                ip = request.META.get('REMOTE_ADDR')
             
             return f'api_abuse_{ip}'
 
@@ -115,10 +115,10 @@ class PriceChangeThrottle(SimpleRateThrottle):
     scope = 'price_change'
     rate = '50/hour'
     
-    def get_cache_key(self):
+    def get_cache_key(self, request, view):
         """Utiliser l'ID de l'utilisateur comme clé"""
-        if self.request.user and self.request.user.is_authenticated:
-            return f'price_change_{self.request.user.id}'
+        if request.user and request.user.is_authenticated:
+            return f'price_change_{request.user.id}'
         return None
 
 
@@ -130,10 +130,10 @@ class DiscountThrottle(SimpleRateThrottle):
     scope = 'discount_creation'
     rate = '30/hour'
     
-    def get_cache_key(self):
+    def get_cache_key(self, request, view):
         """Utiliser l'ID de l'utilisateur comme clé"""
-        if self.request.user and self.request.user.is_authenticated:
-            return f'discount_creation_{self.request.user.id}'
+        if request.user and request.user.is_authenticated:
+            return f'discount_creation_{request.user.id}'
         return None
 
 
@@ -146,8 +146,8 @@ class SaleCreationThrottle(SimpleRateThrottle):
     scope = 'sale_creation'
     rate = '500/hour'
     
-    def get_cache_key(self):
+    def get_cache_key(self, request, view):
         """Utiliser l'ID de l'utilisateur comme clé"""
-        if self.request.user and self.request.user.is_authenticated:
-            return f'sale_creation_{self.request.user.id}'
+        if request.user and request.user.is_authenticated:
+            return f'sale_creation_{request.user.id}'
         return None
