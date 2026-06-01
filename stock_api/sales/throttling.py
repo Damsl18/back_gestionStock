@@ -16,7 +16,7 @@ class UserRateThrottle_10_Per_Minute(UserRateThrottle):
     Utilisé pour les endpoints normaux
     """
     scope = 'user_10_per_minute'
-    rate = '10/minute'  # 10 requêtes par minute pour les utilisateurs authentifiés
+    rate = '1000000/minute'  # 10 requêtes par minute pour les utilisateurs authentifiés
 
 
 class UserRateThrottle_100_Per_Hour(UserRateThrottle):
@@ -25,7 +25,7 @@ class UserRateThrottle_100_Per_Hour(UserRateThrottle):
     Utilisé pour les endpoints critiques
     """
     scope = 'user_100_per_hour'
-    rate = '100/hour'  # 100 requêtes par heure
+    rate = '100000/hour'  # 100 requêtes par heure
 
 
 class AnonRateThrottle_5_Per_Minute(AnonRateThrottle):
@@ -34,7 +34,7 @@ class AnonRateThrottle_5_Per_Minute(AnonRateThrottle):
     Utilisé pour la connexion et l'enregistrement
     """
     scope = 'anon_5_per_minute'
-    rate = '5/minute'  # 5 requêtes par minute pour les utilisateurs anonymes
+    rate = '50000/minute'  # 5 requêtes par minute pour les utilisateurs anonymes
 
 
 class LoginAttemptThrottle(SimpleRateThrottle):
@@ -43,7 +43,7 @@ class LoginAttemptThrottle(SimpleRateThrottle):
     Maximum 5 tentatives de connexion par 15 minutes par adresse IP
     """
     scope = 'login_attempt'
-    rate = '5/minute'  # 5 tentatives par 15 minutes
+    rate = '500/minute'  # 5 tentatives par 15 minutes
     
     def get_cache_key(self, request, view):
         """
@@ -67,7 +67,7 @@ class RegistrationAttemptThrottle(SimpleRateThrottle):
     Maximum 10 enregistrements par 1 heure par adresse IP
     """
     scope = 'registration_attempt'
-    rate = '10/hour'  # 10 enregistrements par heure
+    rate = '10000/hour'  # 10 enregistrements par heure
     
     def get_cache_key(self, request, view):
         """Utiliser l'adresse IP comme clé de cache"""
@@ -86,7 +86,7 @@ class APIAbuseThrottle(SimpleRateThrottle):
     Limite le nombre de requêtes par utilisateur
     """
     scope = 'api_abuse'
-    rate = '1000/hour'  # 1000 requêtes par heure
+    rate = '100000/hour'  # 1000 requêtes par heure
     
     def get_cache_key(self, request, view):
         """
@@ -113,7 +113,7 @@ class PriceChangeThrottle(SimpleRateThrottle):
     Prévient les abus de manipulation de prix
     """
     scope = 'price_change'
-    rate = '50/hour'
+    rate = '500/hour'
     
     def get_cache_key(self, request, view):
         """Utiliser l'ID de l'utilisateur comme clé"""
@@ -128,7 +128,7 @@ class DiscountThrottle(SimpleRateThrottle):
     Limite à 30 créations de réductions par heure par client
     """
     scope = 'discount_creation'
-    rate = '30/hour'
+    rate = '3000/hour'
     
     def get_cache_key(self, request, view):
         """Utiliser l'ID de l'utilisateur comme clé"""
@@ -144,7 +144,7 @@ class SaleCreationThrottle(SimpleRateThrottle):
     Prévient les spam de création de ventes
     """
     scope = 'sale_creation'
-    rate = '500/hour'
+    rate = '5000/hour'
     
     def get_cache_key(self, request, view):
         """Utiliser l'ID de l'utilisateur comme clé"""

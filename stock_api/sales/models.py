@@ -178,8 +178,10 @@ class Discount(models.Model):
     product = models.ForeignKey(
         Product,
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='discounts',
-        help_text='Produit affecté par la réduction'
+        help_text='Produit affecté (null = tous les produits)'
     )
     
     # Pourcentage de réduction (0-100%)
@@ -247,8 +249,7 @@ class Sale(models.Model):
         CustomUser,
         on_delete=models.CASCADE,
         related_name='sales',
-        limit_choices_to={'role': 'worker'},
-        help_text='Worker qui a enregistré la vente'
+        help_text='Utilisateur qui a enregistré la vente'
     )
     
     # Produit vendu
@@ -336,8 +337,7 @@ class Invoice(models.Model):
         CustomUser,
         on_delete=models.CASCADE,
         related_name='invoices',
-        limit_choices_to={'role': 'worker'},
-        help_text='Worker qui a créé la facture'
+        help_text='Utilisateur qui a créé la facture'
     )
     
     # Ventes associées à cette facture
@@ -351,7 +351,8 @@ class Invoice(models.Model):
     total_amount = models.DecimalField(
         max_digits=10,
         decimal_places=2,
-        help_text='Montant total de la facture'
+        default=0,
+        help_text='Montant total de la facture (calculé après ajout des ventes)'
     )
     
     # Montant payé
@@ -450,9 +451,10 @@ class ActivityLog(models.Model):
     worker = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name='activity_logs',
-        limit_choices_to={'role': 'worker'},
-        help_text='Worker qui a effectué l\'action'
+        help_text='Utilisateur qui a effectué l\'action'
     )
     
     # Type d'action effectuée

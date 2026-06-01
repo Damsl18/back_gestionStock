@@ -226,7 +226,7 @@ class SaleSerializer(serializers.ModelSerializer):
             'quantity', 'unit_price', 'discount', 'discount_percentage',
             'total_price', 'sale_date'
         ]
-        read_only_fields = ['total_price', 'sale_date', 'worker', 'worker_username']
+        read_only_fields = ['total_price', 'sale_date', 'worker', 'worker_username', 'unit_price']
     
     def get_discount_percentage(self, obj):
         """Obtenir le pourcentage de la réduction appliquée"""
@@ -264,6 +264,11 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
     Affiche toutes les informations de la facture et les ventes associées
     """
     sales = SaleSerializer(many=True, read_only=True)
+    sales_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        write_only=True,
+        required=False
+    )
     worker_name = serializers.CharField(source='worker.username', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     remaining_amount = serializers.SerializerMethodField()
@@ -271,18 +276,53 @@ class InvoiceDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invoice
         fields = [
-            'id', 'invoice_number', 'worker', 'worker_name', 'sales',
+            'id', 'invoice_number', 'worker', 'worker_name', 'sales', 'sales_ids',
             'total_amount', 'amount_paid', 'remaining_amount',
             'status', 'status_display', 'notes', 'created_at', 'issued_at'
         ]
         read_only_fields = [
             'total_amount', 'created_at', 'issued_at', 'worker',
-            'worker_name', 'status_display', 'remaining_amount'
+            'worker_name', 'status_display', 'remaining_amount', 'sales'
         ]
     
     def get_remaining_amount(self, obj):
         """Calculer le montant restant à payer"""
         return str(obj.total_amount - obj.amount_paid)
+    
+    def create(self, validated_data):
+        """
+        FIX: Créer facture en gérant correctement le M2M sales + worker.
+        """
+        # Extraire sales_ids
+        sales_data = validated_data.pop('sales_ids', [])
+        if not sales_data:
+            sales_data = validated_data.pop('sales', [])
+
+        # Extraire worker depuis le contexte de la requête (read_only → pas dans validated_data)
+        request = self.context.get('request')
+        if request and request.user:
+            validated_data['worker'] = request.user
+
+        # Créer la facture sans les M2M
+        invoice = Invoice.objects.create(**validated_data)
+
+        # Résoudre les IDs de ventes
+        if sales_data:
+            from django.db.models import Q
+            # sales_data peut être une liste d'IDs ou d'objets Sale
+            if sales_data and isinstance(sales_data[0], int):
+                sale_ids = sales_data
+            else:
+                sale_ids = [s.id if hasattr(s, 'id') else s for s in sales_data]
+
+            sales_objs = Sale.objects.filter(id__in=sale_ids)
+            invoice.sales.set(sales_objs)
+
+            # Calculer le total depuis les ventes ajoutées
+            invoice.calculate_total()
+            invoice.save()
+
+        return invoice
 
 
 class InvoiceListSerializer(serializers.ModelSerializer):
@@ -292,7 +332,7 @@ class InvoiceListSerializer(serializers.ModelSerializer):
     """
     worker_name = serializers.CharField(source='worker.username', read_only=True)
     sales_count = serializers.SerializerMethodField()
-    
+
     class Meta:
         model = Invoice
         fields = [
@@ -300,7 +340,7 @@ class InvoiceListSerializer(serializers.ModelSerializer):
             'amount_paid', 'status', 'sales_count', 'created_at'
         ]
         read_only_fields = fields
-    
+
     def get_sales_count(self, obj):
         """Compter le nombre de ventes dans la facture"""
         return obj.sales.count()
@@ -314,7 +354,7 @@ class ActivityLogSerializer(serializers.ModelSerializer):
     """
     worker_username = serializers.CharField(source='worker.username', read_only=True)
     action_display = serializers.CharField(source='get_action_display', read_only=True)
-    
+
     class Meta:
         model = ActivityLog
         fields = [
@@ -350,37 +390,53 @@ class WeeklyReportSerializer(serializers.Serializer):
     total_sales = serializers.DecimalField(max_digits=10, decimal_places=2)
     total_quantity = serializers.IntegerField()
     average_daily_sales = serializers.DecimalField(max_digits=10, decimal_places=2)
-    daily_breakdown = serializers.ListField(child=DailyReportSerializer())
-    
+    daily_breakdown = serializers.ListField(child=serializers.DictField())  # FIX: dicts depuis Sale
+
     @staticmethod
     def generate_weekly_report():
         """
-        Générer le rapport hebdomadaire en agrégeant les données
-        de la semaine actuelle (lundi à dimanche)
+        FIX F13: Rapport hebdomadaire basé sur Sale directement.
+        DailyReport n'est jamais peuplé automatiquement.
         """
-        # Calculer la date d'aujourd'hui et le lundi précédent
-        today = datetime.now().date()
+        from django.utils import timezone as tz
+        today = tz.now().date()
         week_start = today - timedelta(days=today.weekday())
         week_end = week_start + timedelta(days=6)
-        
-        # Récupérer les rapports journaliers pour la semaine
-        daily_reports = DailyReport.objects.filter(
-            report_date__range=[week_start, week_end]
-        ).order_by('report_date')
-        
-        # Calculer les totaux
-        total_sales = daily_reports.aggregate(Sum('total_sales_amount'))['total_sales_amount__sum'] or Decimal('0')
-        total_quantity = daily_reports.aggregate(Sum('total_quantity_sold'))['total_quantity_sold__sum'] or 0
-        
-        # Calculer la moyenne journalière
-        days_with_sales = daily_reports.count()
+
+        # Ventes de la semaine depuis Sale directement
+        weekly_sales = Sale.objects.filter(
+            sale_date__date__range=[week_start, week_end]
+        )
+
+        total_sales = weekly_sales.aggregate(Sum('total_price'))['total_price__sum'] or Decimal('0')
+        total_quantity = weekly_sales.aggregate(Sum('quantity'))['quantity__sum'] or 0
+
+        # Breakdown journalier
+        daily_breakdown = []
+        current = week_start
+        while current <= week_end:
+            day_sales = weekly_sales.filter(sale_date__date=current)
+            day_count = day_sales.count()
+            if day_count > 0:
+                day_total = day_sales.aggregate(Sum('total_price'))['total_price__sum'] or Decimal('0')
+                day_qty = day_sales.aggregate(Sum('quantity'))['quantity__sum'] or 0
+                daily_breakdown.append({
+                    'report_date': str(current),
+                    'total_sales_count': day_count,
+                    'total_sales_amount': str(day_total),
+                    'total_quantity_sold': day_qty,
+                    'average_sale_price': str(day_total / day_count),
+                })
+            current += timedelta(days=1)
+
+        days_with_sales = len(daily_breakdown)
         average_daily_sales = total_sales / days_with_sales if days_with_sales > 0 else Decimal('0')
-        
+
         return {
-            'week_start': week_start,
-            'week_end': week_end,
-            'total_sales': total_sales,
+            'week_start': str(week_start),
+            'week_end': str(week_end),
+            'total_sales': str(total_sales),
             'total_quantity': total_quantity,
-            'average_daily_sales': average_daily_sales,
-            'daily_breakdown': DailyReportSerializer(daily_reports, many=True).data
+            'average_daily_sales': str(average_daily_sales),
+            'daily_breakdown': daily_breakdown,
         }
