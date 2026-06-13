@@ -9,11 +9,17 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
+import os
 from pathlib import Path
+
+from django.conf.global_settings import STATIC_ROOT
+from dotenv import load_dotenv
+import dj_database_url
+
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(BASE_DIR / '.env')
 
 # Ensure the logging directory exists before Django configures logging handlers.
 LOG_DIR = BASE_DIR / 'logs'
@@ -23,13 +29,12 @@ LOG_DIR.mkdir(parents=True, exist_ok=True)
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-i5*t+gak98e+xm9fu*qi()&5&rehy+$%)%uh=h318-+ea!kl@_'
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv("DEBUG", "False")
 
-ALLOWED_HOSTS = ["https://back-gestionstock.onrender.com", "localhost", "127.0.0.1", "localhost:3000"]
-
+ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", default='').split(',')
 
 
 # Application definition
@@ -51,6 +56,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -84,14 +90,7 @@ WSGI_APPLICATION = 'stock_api.wsgi.application'
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'gestion_api',
-        'USER': 'postgres',
-        'PASSWORD': 'tewani200',
-        'HOST': 'localhost',
-        'PORT': '5432',
-    }
+    'default': dj_database_url.config(default=os.getenv('DATABASE_URL'))
 }
 
 
@@ -129,7 +128,9 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/6.0/ref/settings/#default-auto-field
@@ -269,7 +270,7 @@ JAZZMIN_UI_TWEAKS = {
 # qui protègent automatiquement contre les injections SQL
 
 # 2. Protection CSRF (Cross-Site Request Forgery)
-CSRF_COOKIE_SECURE = False  # À mettre à True en production (requiert HTTPS)
+CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE")  # À mettre à True en production (requiert HTTPS)
 CSRF_COOKIE_HTTPONLY = True  # Ne pas exposer le cookie CSRF en JavaScript
 
 # 3. Protection de sécurité HTTP
@@ -282,7 +283,7 @@ SECURE_CONTENT_SECURITY_POLICY = {
 }
 
 # 4. Protection des cookies
-SESSION_COOKIE_SECURE = False  # À mettre à True en production (requiert HTTPS)
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE")  # À mettre à True en production (requiert HTTPS)
 SESSION_COOKIE_HTTPONLY = True  # Ne pas exposer le cookie de session en JavaScript
 SESSION_COOKIE_AGE = 86400  # 24 heures en secondes
 
@@ -339,9 +340,6 @@ LOGGING = {
         },
     },
 }
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",
-    "http://127.0.0.1:3000",
-]
+CORS_ALLOWED_ORIGINS = os.getenv("CORS_ALLOWED_ORIGINS", "http://localhost:3000").split(',')
 
 CORS_ALLOWED_CREDENTIALS = True

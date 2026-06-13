@@ -2,7 +2,7 @@
 Configuration de l'interface d'administration Django
 Enregistre les modèles pour les gérer via l'interface admin
 """
-
+import django
 from django.contrib import admin
 from .models import (
     CustomUser, Product, Sale, Invoice, Discount,
@@ -12,7 +12,7 @@ from .models import (
 
 # ===================== CUSTOM USER ADMIN =====================
 @admin.register(CustomUser)
-class CustomUserAdmin(admin.ModelAdmin):
+class CustomUserAdmin(django.contrib.auth.admin.UserAdmin):
     """
     Interface admin pour les utilisateurs personnalisés
     Affiche les informations de l'utilisateur et ses statuts

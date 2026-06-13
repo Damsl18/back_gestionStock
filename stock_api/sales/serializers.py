@@ -2,6 +2,7 @@
 Sérialiseurs (Serializers) pour convertir les modèles en JSON
 Utilisés pour la sérialisation et désérialisation des données API
 """
+from django.utils import timezone
 
 from rest_framework import serializers
 from django.contrib.auth import authenticate
@@ -94,7 +95,7 @@ class UserLoginSerializer(serializers.Serializer):
             
             # Connexion réussie - réinitialiser les tentatives échouées
             user.failed_login_attempts = 0
-            user.last_presence = datetime.now()
+            user.last_presence = timezone.now()
             user.save()
             
             data['user'] = user
@@ -176,8 +177,8 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_active_discount(self, obj):
         """Obtenir la réduction active s'il en existe une"""
         active_discount = obj.discounts.filter(
-            start_date__lte=datetime.now(),
-            end_date__gte=datetime.now()
+            start_date__lte=timezone.now(),
+            end_date__gte=timezone.now()
         ).first()
         if active_discount:
             return {
