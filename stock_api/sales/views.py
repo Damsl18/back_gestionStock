@@ -192,7 +192,7 @@ class UserViewSet(viewsets.ModelViewSet):
     Les clients peuvent créer/modifier des workers
     Chaque utilisateur peut voir son propre profil
     """
-    queryset = CustomUser.objects.all().order_by('id')
+    queryset = CustomUser.objects.all()
     serializer_class = UserProfileSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [UserRateThrottle_10_Per_Minute]
@@ -288,7 +288,7 @@ class ProductViewSet(viewsets.ModelViewSet):
     Les clients peuvent voir et modifier les produits
     Les workers peuvent voir les produits
     """
-    queryset = Product.objects.all().order_by('id')
+    queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [UserRateThrottle_10_Per_Minute]
@@ -374,7 +374,7 @@ class SaleViewSet(viewsets.ModelViewSet):
     Les workers peuvent créer des ventes
     Les clients et super admins peuvent voir et gérer toutes les ventes
     """
-    queryset = Sale.objects.all().order_by('id')
+    queryset = Sale.objects.all()
     serializer_class = SaleSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [SaleCreationThrottle]
@@ -463,7 +463,7 @@ class InvoiceViewSet(viewsets.ModelViewSet):
     Les workers peuvent créer des factures
     Les clients et super admins peuvent voir et gérer les factures
     """
-    queryset = Invoice.objects.all().order_by('id')
+    queryset = Invoice.objects.all()
     permission_classes = [IsAuthenticated]
     throttle_classes = [UserRateThrottle_10_Per_Minute]
     
@@ -566,7 +566,7 @@ class DiscountViewSet(viewsets.ModelViewSet):
     ViewSet pour la gestion des réductions
     Seuls les clients et super admins peuvent créer/modifier les réductions
     """
-    queryset = Discount.objects.all().order_by('id')
+    queryset = Discount.objects.all()
     serializer_class = DiscountSerializer
     permission_classes = [IsAuthenticated]
     throttle_classes = [DiscountThrottle]
@@ -601,7 +601,7 @@ class DailyReportViewSet(viewsets.ReadOnlyModelViewSet):
     """
     ViewSet pour voir les rapports journaliers
     """
-    queryset = DailyReport.objects.all().order_by('id')
+    queryset = DailyReport.objects.all()
     serializer_class = DailyReportSerializer
     permission_classes = [IsAuthenticated]  # FIX: client peut voir les rapports
     throttle_classes = [UserRateThrottle_10_Per_Minute]
